@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JobPilot | Background Job Controller</title>
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+body {
+    background: #0b1020;
+    color: #f1f5f9;
+    min-height: 100vh;
+}
+
+.layout {
+    display: flex;
+    min-height: 100vh;
+}
+
+.sidebar {
+    width: 235px;
+    background: #111a2e;
+    padding: 30px 20px;
+    border-right: 1px solid #26334c;
+}
+
+.logo {
+    font-size: 25px;
+    font-weight: bold;
+    color: #60a5fa;
+    margin-bottom: 45px;
+}
+
+.logo span {
+    color: white;
+}
+
+.nav {
+    padding: 13px;
+    background: #1e3a5f;
+    border-radius: 9px;
+    color: #bfdbfe;
+    margin-bottom: 10px;
+}
+
+.sidebar p {
+    color: #8492aa;
+    font-size: 13px;
+    margin-top: 35px;
+}
+
+.main {
+    flex: 1;
+    padding: 35px;
+    overflow-x: auto;
+}
+
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 35px;
+}
+
+h1 {
+    font-size: 28px;
+}
+
+.subtitle {
+    color: #94a3b8;
+    margin-top: 8px;
+}
+
+.live {
+    color: #4ade80;
+    background: #123326;
+    padding: 10px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+}
+
+.stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(150px, 1fr));
+    gap: 18px;
+    margin-bottom: 25px;
+}
+
+.card {
+    background: #141f35;
+    border: 1px solid #273650;
+    border-radius: 14px;
+    padding: 22px;
+}
+
+.card p {
+    color: #94a3b8;
+    font-size: 14px;
+}
+
+.card h2 {
+    font-size: 30px;
+    margin-top: 15px;
+}
+
+.blue { color: #60a5fa; }
+.green { color: #4ade80; }
+.orange { color: #fb923c; }
+.purple { color: #c084fc; }
+
+.section {
+    background: #141f35;
+    border: 1px solid #273650;
+    border-radius: 14px;
+    padding: 24px;
+    margin-bottom: 22px;
+}
+
+.section h3 {
+    margin-bottom: 20px;
+}
+
+.job-controls {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+select {
+    background: #0b1020;
+    color: white;
+    border: 1px solid #34445f;
+    padding: 12px;
+    border-radius: 8px;
+    min-width: 220px;
+}
+
+button {
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.start {
+    background: #2563eb;
+    color: white;
+}
+
+.stop {
+    background: #dc2626;
+    color: white;
+}
+
+button:hover {
+    opacity: 0.85;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 500px;
+}
+
+th, td {
+    text-align: left;
+    padding: 16px 10px;
+    border-bottom: 1px solid #293750;
+    font-size: 14px;
+}
+
+th {
+    color: #94a3b8;
+}
+
+.status {
+    padding: 6px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    background: #163d2c;
+    color: #4ade80;
+}
+
+.status.COMPLETED {
+    background: #23334a;
+    color: #93c5fd;
+}
+
+.status.STOPPED {
+    background: #44252b;
+    color: #fca5a5;
+}
+
+.resources {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.resource-value {
+    font-size: 25px;
+    margin-top: 12px;
+    color: #60a5fa;
+}
+
+.progress {
+    height: 8px;
+    background: #26344b;
+    border-radius: 10px;
+    margin-top: 14px;
+    overflow: hidden;
+}
+
+.bar {
+    height: 100%;
+    background: #3b82f6;
+    width: 0%;
+    transition: width 0.3s;
+}
+
+.activity {
+    color: #cbd5e1;
+    padding: 12px 0;
+    border-bottom: 1px solid #293750;
+    font-size: 14px;
+}
+
+.activity span {
+    color: #60a5fa;
+    margin-right: 12px;
+}
+
+.empty {
+    color: #94a3b8;
+    padding: 18px 0;
+}
+
+@media(max-width: 900px) {
+    .sidebar { display: none; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media(max-width: 550px) {
+    .main { padding: 18px; }
+    .stats, .resources { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+
+<body>
+<div class="layout">
+
+<aside class="sidebar">
+    <div class="logo">JOB<span>PILOT</span></div>
+    <div class="nav">▦ Dashboard</div>
+    <div class="nav">⚙ Job Controller</div>
+    <div class="nav">◉ Resources</div>
+    <div class="nav">☰ Activity Logs</div>
+    <p>UNIX SYSTEM PROJECT</p>
+    <p>Background Job Management</p>
+</aside>
+
+<main class="main">
+
+<header class="topbar">
+    <div>
+        <h1>Background Job Dashboard</h1>
+        <p class="subtitle">Monitor and control your UNIX background processes.</p>
+    </div>
+    <div class="live">● SYSTEM ONLINE</div>
+</header>
+
+<section class="stats">
+    <div class="card">
+        <p>Total Jobs</p>
+        <h2 class="blue" id="total">0</h2>
+    </div>
+    <div class="card">
+        <p>Running Jobs</p>
+        <h2 class="green" id="running">0</h2>
+    </div>
+    <div class="card">
+        <p>Completed Jobs</p>
+        <h2 class="orange" id="completed">0</h2>
+    </div>
+    <div class="card">
+        <p>Stopped Jobs</p>
+        <h2 class="purple" id="stopped">0</h2>
+    </div>
+</section>
+
+<section class="section">
+    <h3>⚡ Job Controller</h3>
+    <div class="job-controls">
+        <select id="jobName">
+            <option value="sleep_job">Sleep Job</option>
+            <option value="date_job">Date Job</option>
+            <option value="directory_job">Directory Job</option>
+            <option value="system_info">System Information</option>
+        </select>
+        <button class="start" onclick="startJob()">▶ Start Job</button>
+    </div>
+</section>
+
+<section class="section">
+    <h3>Running Process Monitor</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Job Name</th>
+                <th>Process ID</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="jobTable">
+            <tr><td colspan="4" class="empty">Loading jobs...</td></tr>
+        </tbody>
+    </table>
+</section>
+
+<section class="section">
+    <h3>System Resource Summary</h3>
+    <div class="resources">
+        <div>
+            <p>CPU Usage</p>
+            <div class="resource-value" id="cpu">0%</div>
+            <div class="progress"><div class="bar" id="cpuBar"></div></div>
+        </div>
+        <div>
+            <p>Memory Usage</p>
+            <div class="resource-value" id="memory">0%</div>
+            <div class="progress"><div class="bar" id="memoryBar"></div></div>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <h3>Recent Activity</h3>
+    <div id="activity">
+        <p class="empty">No activity yet.</p>
+    </div>
+</section>
+
+</main>
+</div>
+
+<script>
+async function startJob() {
+    const name = document.getElementById("jobName").value;
+
+    try {
+        const response = await fetch("/api/start", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({name})
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            alert(data.error || "Unable to start job");
+        } else {
+            alert(data.message + "\nPID: " + data.pid);
+        }
+
+        updateDashboard();
+    } catch (error) {
+        alert("Could not connect to JobPilot server.");
+    }
+}
+
+async function stopJob(pid) {
+    try {
+        const response = await fetch("/api/stop", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({pid})
+        });
+
+        const data = await response.json();
+        alert(data.message || data.error);
+        updateDashboard();
+    } catch (error) {
+        alert("Could not connect to server.");
+    }
+}
+
+async function updateDashboard() {
+    try {
+        const [jobResponse, resourceResponse, activityResponse] =
+            await Promise.all([
+                fetch("/api/jobs"),
+                fetch("/api/resources"),
+                fetch("/api/activity")
+            ]);
+
+        const jobs = await jobResponse.json();
+        const resources = await resourceResponse.json();
+        const activities = await activityResponse.json();
+
+        document.getElementById("total").textContent = jobs.length;
+        document.getElementById("running").textContent =
+            jobs.filter(j => j.status === "RUNNING").length;
+        document.getElementById("completed").textContent =
+            jobs.filter(j => j.status === "COMPLETED").length;
+        document.getElementById("stopped").textContent =
+            jobs.filter(j => j.status === "STOPPED").length;
+
+        const table = document.getElementById("jobTable");
+
+        if (jobs.length === 0) {
+            table.innerHTML =
+                '<tr><td colspan="4" class="empty">No jobs started yet.</td></tr>';
+        } else {
+            table.innerHTML = jobs.map(job => `
+                <tr>
+                    <td>${escapeHTML(job.name)}</td>
+                    <td>${escapeHTML(String(job.pid))}</td>
+                    <td><span class="status ${job.status}">
+                        ${job.status}</span></td>
+                    <td>${job.status === "RUNNING" ?
+                        `<button class="stop" onclick="stopJob('${job.pid}')">Stop</button>` :
+                        "—"}
+                    </td>
+                </tr>
+            `).join("");
+        }
+
+        document.getElementById("cpu").textContent = resources.cpu + "%";
+        document.getElementById("memory").textContent = resources.memory + "%";
+        document.getElementById("cpuBar").style.width = resources.cpu + "%";
+        document.getElementById("memoryBar").style.width = resources.memory + "%";
+
+        const activity = document.getElementById("activity");
+
+        activity.innerHTML = activities.length
+            ? activities.map(item => `
+                <div class="activity">
+                    <span>${escapeHTML(item.time)}</span>
+                    ${escapeHTML(item.message)}
+                </div>
+            `).join("")
+            : '<p class="empty">No activity yet.</p>';
+
+    } catch (error) {
+        console.error("Dashboard update failed:", error);
+    }
+}
+
+function escapeHTML(value) {
+    return String(value).replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+    })[char]);
+}
+
+updateDashboard();
+setInterval(updateDashboard, 3000);
+</script>
+
+</body>
+</html>
